@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { init as initContentfulExtension } from "contentful-ui-extensions-sdk"
-import useEventListener from "@use-it/event-listener"
 import styled from "@emotion/styled"
 
 import MdxEditor from "./editor"
@@ -11,7 +10,6 @@ const Wrapper = styled.div`
 
 const ContentfulUiExtensionMdxEditor = () => {
   const editorId = "contentful-ui"
-  const localStorageId = `contentful-ui-live-editor-${editorId}`
   const [sdk, setSdk] = useState(null)
   const [value, setValue] = useState(null)
   const refFormWrapper = useRef(null)
