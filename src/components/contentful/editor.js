@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react"
-import { useDebounce } from "@react-hook/debounce"
+import { useDebounceCallback } from "@react-hook/debounce"
 import propTypes from "prop-types"
 import styled from "@emotion/styled"
 import { css } from "@emotion/core"
@@ -71,24 +71,25 @@ function LiveEditor({ editorId, initialValue, value, onSave }) {
   const [editorValue, setEditorValue] = useState(
     value || localStorage.getItem(localStorageId) || initialValue || ""
   )
-  const [unverifiedValue, setUnverifiedValue] = useDebounce(editorValue, 300)
+  const [currentValue, setCurrentValue] = useState(editorValue)
   const [error, setError] = useState()
 
+  // Validate MDX and send valid content to preview and save handler
   useEffect(() => {
     async function parseMdx() {
       try {
         // Validate mdx by parsing it
-        await mdx(unverifiedValue)
+        await mdx(currentValue)
 
         // Set valid raw value
         setError(null)
 
         // Store to localStorage for preview
-        localStorage.setItem(localStorageId, unverifiedValue)
+        localStorage.setItem(localStorageId, currentValue)
 
         // Save value if desired by user
         if (onSave) {
-          await onSave(unverifiedValue)
+          await onSave(currentValue)
         }
 
         // Resize editor when MDX error was fixed by the user
@@ -106,18 +107,22 @@ function LiveEditor({ editorId, initialValue, value, onSave }) {
     }
 
     parseMdx()
-  }, [unverifiedValue])
+  }, [currentValue])
 
-  // Do not validate the same MDX twice
-  useEffect(() => {
-    if (unverifiedValue !== editorValue && editorValue) {
-      setUnverifiedValue(editorValue)
+  // Handle changes to editor value by user
+  const handleEditorChange = useDebounceCallback(content => {
+    if (content !== editorValue) {
+      setEditorValue(content)
     }
-  }, [editorValue, setUnverifiedValue, unverifiedValue])
 
-  // Trim whitespace
-  const handleEditorChange = content =>
-    setEditorValue(content.replace(/^[ \t]+$/gm, ""))
+    // Trim whitespace
+    const cleanValue = content.replace(/^[ \t]+$/gm, "")
+
+    // No need to overwrite the same value
+    if (cleanValue !== currentValue) {
+      setCurrentValue(cleanValue)
+    }
+  }, 300)
 
   const previewSrc = `/contentful/mdx-preview?id=${localStorageId}`
 
