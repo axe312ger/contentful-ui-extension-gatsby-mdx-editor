@@ -1,7 +1,10 @@
-/**
- * Implement Gatsby's Browser APIs in this file.
- *
- * See: https://www.gatsbyjs.org/docs/browser-apis/
- */
+const {
+  init: initContentfulExtension,
+} = require("contentful-ui-extensions-sdk")
 
-// You can delete this file if you're not using it
+exports.onClientEntry = () => {
+  // Init Contentful UI Extension SDK before the window load event
+  initContentfulExtension(sdk => {
+    window.sdk = sdk
+  })
+}

@@ -65,11 +65,11 @@ const LiveEditorEditor = styled.div`
   min-height: 4rem;
 `
 
-function LiveEditor({ editorId, initialValue, value, onSave }) {
+function LiveEditor({ editorId, initialValue, fieldValue, onSave }) {
   const localStorageId = `contentful-ui-live-editor-${editorId}`
   const editorRef = useRef(null)
   const [editorValue, setEditorValue] = useState(
-    value || localStorage.getItem(localStorageId) || initialValue || ""
+    fieldValue || localStorage.getItem(localStorageId) || initialValue || ""
   )
   const [currentValue, setCurrentValue] = useState(editorValue)
   const [error, setError] = useState()
@@ -179,7 +179,7 @@ LiveEditor.defaultProps = {
 LiveEditor.propTypes = {
   editorId: propTypes.string,
   initialValue: propTypes.string,
-  value: propTypes.string,
+  fieldValue: propTypes.string,
   onSave: propTypes.func,
 }
 

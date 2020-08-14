@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react"
-import { init as initContentfulExtension } from "contentful-ui-extensions-sdk"
+import propTypes from "prop-types"
 import styled from "@emotion/styled"
 
 import MdxEditor from "./editor"
@@ -8,23 +8,10 @@ const Wrapper = styled.div`
   min-height: 400px;
 `
 
-const ContentfulUiExtensionMdxEditor = () => {
+const ContentfulUiExtensionMdxEditor = ({ sdk }) => {
   const editorId = "contentful-ui"
-  const [sdk, setSdk] = useState(null)
-  const [value, setValue] = useState(null)
+  const [fieldValue] = useState(sdk.field.getValue())
   const refFormWrapper = useRef(null)
-
-  // Connect to Contentful
-  useEffect(() => {
-    if (sdk) {
-      return
-    }
-    initContentfulExtension(sdk => {
-      setSdk(sdk)
-      const fieldValue = sdk.field.getValue()
-      setValue(fieldValue)
-    })
-  }, [sdk])
 
   // Resize field interface based on form height
   useEffect(() => {
@@ -38,25 +25,49 @@ const ContentfulUiExtensionMdxEditor = () => {
   const save = useCallback(async editorValue => {
     try {
       await sdk.field.setValue(editorValue)
-      // setValue(editorValue)
-      sdk.notifier.success("Synced data with Contentful")
     } catch (err) {
       console.error(err)
-      sdk.notifier.error("Could not sync with Contentful")
+      sdk.notifier.error("Could not sync editor value with Contentful")
     }
   })
 
-  if (!sdk) {
-    return "Connecting to Contentful..."
-  }
-
   return (
     <Wrapper ref={refFormWrapper}>
-      {value !== null && (
-        <MdxEditor editorId={editorId} onSave={save} value={value} />
-      )}
+      <MdxEditor editorId={editorId} onSave={save} fieldValue={fieldValue} />
     </Wrapper>
   )
 }
 
-export default ContentfulUiExtensionMdxEditor
+ContentfulUiExtensionMdxEditor.propTypes = {
+  sdk: propTypes.object.isRequired,
+}
+
+const ContentfulUiExtensionMdxEditorWrapper = props => {
+  // Skip SSR
+  if (
+    !(
+      typeof window !== "undefined" &&
+      window.document &&
+      window.document.createElement
+    )
+  ) {
+    return null
+  }
+
+  // Wait for Contentful UI SDK to be connected
+  const [sdk, setSdk] = useState(null)
+  useEffect(() => {
+    console.log("check for sdk")
+    if (!sdk && window.sdk) {
+      console.log("SDK found")
+      setSdk(window.sdk)
+    }
+  }, [sdk, window.sdk])
+
+  if (!sdk) {
+    return "Connecting..."
+  }
+  return <ContentfulUiExtensionMdxEditor sdk={sdk} {...props} />
+}
+
+export default ContentfulUiExtensionMdxEditorWrapper
