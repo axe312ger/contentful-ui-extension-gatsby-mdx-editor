@@ -1,28 +1,20 @@
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { init as initContentfulExtension } from "contentful-ui-extensions-sdk"
 import useEventListener from "@use-it/event-listener"
+import styled from "@emotion/styled"
 
 import MdxEditor from "./editor"
 
+const Wrapper = styled.div`
+  min-height: 400px;
+`
+
 const ContentfulUiExtensionMdxEditor = () => {
-  const editorId = "demo"
+  const editorId = "contentful-ui"
   const localStorageId = `contentful-ui-live-editor-${editorId}`
   const [sdk, setSdk] = useState(null)
-  const [value, setValue] = useState(localStorage.getItem(localStorageId))
+  const [value, setValue] = useState(null)
   const refFormWrapper = useRef(null)
-
-  // Listen for content updates from editor and send them to Contentful
-  useEventListener("storage", e => {
-    if (e.key === localStorageId) {
-      try {
-        setValue(e.newValue)
-        sdk.notifier.success("Save successful")
-      } catch (err) {
-        console.error(err)
-        sdk.notifier.error("Save failed")
-      }
-    }
-  })
 
   // Connect to Contentful
   useEffect(() => {
@@ -31,26 +23,41 @@ const ContentfulUiExtensionMdxEditor = () => {
     }
     initContentfulExtension(sdk => {
       setSdk(sdk)
-      setValue(sdk.field.getValue())
+      const fieldValue = sdk.field.getValue()
+      setValue(fieldValue)
     })
   }, [sdk])
 
   // Resize field interface based on form height
   useEffect(() => {
-    if (!refFormWrapper || !sdk) {
+    if (!refFormWrapper || !refFormWrapper.current || !sdk) {
       return
     }
     sdk.window.updateHeight(refFormWrapper.current.clientHeight)
   }, [refFormWrapper, sdk])
+
+  // Save handler to send editor value to Contentful
+  const save = useCallback(async editorValue => {
+    try {
+      await sdk.field.setValue(editorValue)
+      // setValue(editorValue)
+      sdk.notifier.success("Synced data with Contentful")
+    } catch (err) {
+      console.error(err)
+      sdk.notifier.error("Could not sync with Contentful")
+    }
+  })
 
   if (!sdk) {
     return "Connecting to Contentful..."
   }
 
   return (
-    <div ref={refFormWrapper}>
-      <MdxEditor editorId={editorId} initialValue={value} />
-    </div>
+    <Wrapper ref={refFormWrapper}>
+      {value !== null && (
+        <MdxEditor editorId={editorId} onSave={save} value={value} />
+      )}
+    </Wrapper>
   )
 }
 

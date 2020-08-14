@@ -65,11 +65,11 @@ const LiveEditorEditor = styled.div`
   min-height: 4rem;
 `
 
-function LiveEditor({ editorId, initialValue }) {
+function LiveEditor({ editorId, initialValue, value, onSave }) {
   const localStorageId = `contentful-ui-live-editor-${editorId}`
   const editorRef = useRef(null)
   const [editorValue, setEditorValue] = useState(
-    localStorage.getItem(localStorageId) || initialValue || ""
+    value || localStorage.getItem(localStorageId) || initialValue || ""
   )
   const [unverifiedValue, setUnverifiedValue] = useDebounce(editorValue, 300)
   const [error, setError] = useState()
@@ -82,8 +82,14 @@ function LiveEditor({ editorId, initialValue }) {
 
         // Set valid raw value
         setError(null)
+
+        // Store to localStorage for preview
         localStorage.setItem(localStorageId, unverifiedValue)
-        localStorage.setItem(`${localStorageId}-processed`, unverifiedValue)
+
+        // Save value if desired by user
+        if (onSave) {
+          await onSave(unverifiedValue)
+        }
 
         // Resize editor when MDX error was fixed by the user
         if (editorRef.current) {
@@ -109,10 +115,11 @@ function LiveEditor({ editorId, initialValue }) {
     }
   }, [editorValue, setUnverifiedValue, unverifiedValue])
 
+  // Trim whitespace
   const handleEditorChange = content =>
     setEditorValue(content.replace(/^[ \t]+$/gm, ""))
 
-  const previewSrc = `/contentful/mdx-preview?id=${`${localStorageId}-processed`}`
+  const previewSrc = `/contentful/mdx-preview?id=${localStorageId}`
 
   return (
     <LiveEditorWrapper>
@@ -167,6 +174,8 @@ LiveEditor.defaultProps = {
 LiveEditor.propTypes = {
   editorId: propTypes.string,
   initialValue: propTypes.string,
+  value: propTypes.string,
+  onSave: propTypes.func,
 }
 
 const LiveEditorBrowserOnlyWrapper = props =>
